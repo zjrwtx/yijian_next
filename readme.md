@@ -1,0 +1,1 @@
+请做一个gradio程序，把这里面的几个模块都分别做成子页面，使用流程是首先用户需要进行将医患对话声音转换成文本 @audio_to_text.py ，然后医患文本对话放在 @recommed_inspect_item.py 做检验项目推荐，然后通过  @image_analysis.py 将 检验结果图转换为文本和其他病人文本信息一起给 @Analysis_test_results.py 做检验报告生成，最后还要做 @data_auto_anaylse_with_research_inspiration.py 检验csv数据的分析与科研灵感启发，而且还支持数据生成 @synthetic_data_pipeline.py 
