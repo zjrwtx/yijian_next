@@ -37,38 +37,38 @@ from image_analysis import analyze_images
 # mcp_toolkit = MCPToolkit(config_path=str(config_path))
 models = {
         "user": ModelFactory.create(
-            model_platform=ModelPlatformType.DEEPSEEK,
-            model_type=ModelType.DEEPSEEK_CHAT,
+            model_platform=ModelPlatformType.OPENAI,
+            model_type=ModelType.GPT_4O_MINI,
             model_config_dict={"temperature": 0},
         ),
         "assistant": ModelFactory.create(
-            model_platform=ModelPlatformType.DEEPSEEK,
-            model_type=ModelType.DEEPSEEK_CHAT,
+            model_platform=ModelPlatformType.OPENAI,
+            model_type=ModelType.GPT_4O_MINI,
             model_config_dict={"temperature": 0},
         ),
         "browsing": ModelFactory.create(
-            model_platform=ModelPlatformType.DEEPSEEK,
-            model_type=ModelType.DEEPSEEK_CHAT,
+            model_platform=ModelPlatformType.OPENAI,
+            model_type=ModelType.GPT_4O_MINI,
             model_config_dict={"temperature": 0},
         ),
         "planning": ModelFactory.create(
-            model_platform=ModelPlatformType.DEEPSEEK,
-            model_type=ModelType.DEEPSEEK_CHAT,
+            model_platform=ModelPlatformType.OPENAI,
+            model_type=ModelType.GPT_4O_MINI,
             model_config_dict={"temperature": 0},
         ),
         "video": ModelFactory.create(
-            model_platform=ModelPlatformType.DEEPSEEK,
-            model_type=ModelType.DEEPSEEK_CHAT,
+            model_platform=ModelPlatformType.OPENAI,
+            model_type=ModelType.GPT_4O_MINI,
             model_config_dict={"temperature": 0},
         ),
         "image": ModelFactory.create(
-            model_platform=ModelPlatformType.DEEPSEEK,
-            model_type=ModelType.DEEPSEEK_CHAT,
+            model_platform=ModelPlatformType.OPENAI,
+            model_type=ModelType.GPT_4O_MINI,
             model_config_dict={"temperature": 0},
         ),
         "document": ModelFactory.create(
-            model_platform=ModelPlatformType.DEEPSEEK,
-            model_type=ModelType.DEEPSEEK_CHAT,
+            model_platform=ModelPlatformType.OPENAI,
+            model_type=ModelType.GPT_4O_MINI,
             model_config_dict={"temperature": 0},
         ),
     }
@@ -82,7 +82,7 @@ tools = [
         planning_agent_model=models["planning"],
     ).get_tools(),
     *VideoAnalysisToolkit(model=models["video"]).get_tools(),
-    *AudioAnalysisToolkit().get_tools(),  # This requires DEEPSEEK Key
+    *AudioAnalysisToolkit().get_tools(),  # This requires OPENAI Key
     *CodeExecutionToolkit(sandbox="subprocess", verbose=True).get_tools(),
     *ImageAnalysisToolkit(model=models["image"]).get_tools(),
     SearchToolkit().search_duckduckgo,
