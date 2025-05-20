@@ -32,7 +32,7 @@ from camel.models import ModelFactory
 from camel.societies import RolePlaying
 from camel.types import ModelPlatformType, ModelType
 from camel.utils import print_text_animated
-from image_analysis import analyze_images
+from src.image_analysis.image_analysis import analyze_images
 # config_path = Path(__file__).parent / "mcp_servers_config.json"
 # mcp_toolkit = MCPToolkit(config_path=str(config_path))
 models = {
