@@ -15,7 +15,7 @@ from camel.tasks import Task
 from camel.toolkits import(
      FunctionTool, SearchToolkit,PubMedToolkit,GoogleScholarToolkit,ArxivToolkit,SemanticScholarToolkit
      ,FileWriteToolkit,
-     BrowserToolkit,
+     AsyncBrowserToolkit,
     #  ThinkingToolkit,
      RetrievalToolkit,
      
@@ -40,6 +40,7 @@ tools=[
     ArxivToolkit().get_tools,
     *FileWriteToolkit().get_tools(),
     *RetrievalToolkit().get_tools(),
+    *AsyncBrowserToolkit(headless=False).get_tools(),
     # *BrowserToolkit(headless=False).get_tools(),
     # ThinkingToolkit().get_tools(),
 ]
@@ -426,7 +427,7 @@ def process_clinical_case(conversation_text: str) -> str:
         content="通过实验室工作流处理此临床病例。"
         "step1:总结临床对话。然后分析症状并建议潜在病症。"
         "step2:根据症状搜索搜索相关检验资料"
-        "step3:使用rag工具检索搜索到的url内容"
+        "step3:查看搜索到的url内容"
         "step4:接着推荐适当的实验室检验。记得语言都是中文"
         "step5:基于推荐的检验项目，再结合医院开展的检验项目进行最终的可开单的推荐",
         additional_info=conversation_text,
