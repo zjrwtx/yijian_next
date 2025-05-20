@@ -20,6 +20,7 @@ from camel.toolkits import(
      RetrievalToolkit,
      
 )
+import json
 import asyncio
 from camel.types import ModelPlatformType, ModelType  
 from camel.societies.workforce import Workforce
@@ -35,7 +36,7 @@ os.environ["OPENAI_API_KEY"] = openai_api_key
 
 tools=[
     # SearchToolkit().search_duckduckgo,
-    SearchToolkit().search_google,
+    # SearchToolkit().search_google,
     PubMedToolkit().get_tools,
     ArxivToolkit().get_tools,
     *FileWriteToolkit().get_tools(),
@@ -68,7 +69,7 @@ def make_medical_agent(
     )
     model = ModelFactory.create(
     model_platform=ModelPlatformType.OPENAI,
-    model_type=ModelType.GPT_4_1,
+    model_type=ModelType.GPT_4O_MINI,
     model_config_dict=ChatGPTConfig(temperature=0.2).as_dict(),
     # model = ModelFactory.create(
     # model_platform=ModelPlatformType.GEMINI,
@@ -352,7 +353,7 @@ hospital_matcher_tools = [
 
 hospital_matcher_model = ModelFactory.create(
     model_platform=ModelPlatformType.OPENAI,
-    model_type=ModelType.GPT_4_1,
+    model_type=ModelType.GPT_4O_MINI,
     model_config_dict=ChatGPTConfig(temperature=0.2).as_dict(),)
 
 msg_content = textwrap.dedent(
@@ -377,7 +378,7 @@ hospital_matcher=ChatAgent(
 )
 model = ModelFactory.create(
     model_platform=ModelPlatformType.OPENAI,
-    model_type=ModelType.GPT_4_1,
+    model_type=ModelType.GPT_4O_MINI,
     model_config_dict=ChatGPTConfig(temperature=0.2).as_dict())
 
 # model = ModelFactory.create(
@@ -472,7 +473,38 @@ Doctor: 您刚才提到的胸闷气短，有没有出现过胸痛？运动后会
 Patient: 有时会隐隐作痛，但不是很剧烈。深呼吸的时候会感觉胸部不适，最近还出现了干咳的情况。有几次半夜被胸闷惊醒，同时伴有盗汗。
 """
 
+
+
 if __name__ == "__main__":
-    # 处理病例
+    # 处理病例获取结果
     result = process_clinical_case(example_conversation)
-    print(result)
+
+    # 构建新的问答对
+    new_qa = {
+        "question": example_conversation.strip(),
+        "answer": result.strip()
+    }
+
+    # 定义文件路径
+    file_path = "qa_dataset.json"
+
+    # 读取现有数据或初始化空列表
+    if os.path.exists(file_path):
+        with open(file_path, "r", encoding="utf-8") as f:
+            try:
+                data = json.load(f)
+                if not isinstance(data, list):
+                    data = []  # 如果不是数组，重置为空列表
+            except json.JSONDecodeError:
+                data = []  # 文件损坏则清空处理
+    else:
+        data = []
+
+    # 添加新问答对
+    data.append(new_qa)
+
+    # 写回文件
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
+
+    print("新问答对已成功追加到 'qa_dataset.json'")

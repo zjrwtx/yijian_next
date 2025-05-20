@@ -13,7 +13,7 @@ from typing import List, Dict, Any, Tuple, Callable
 from audio_to_text import audio_models
 from src.recommend_inspect_item.recommed_inspect_item import process_clinical_case
 from src.image_analysis.image_analysis import analyze_images
-from src.Analysis_test_results import analyze_test_results
+from src.image_analysis.Analysis_test_results import analyze_test_results
 import data_auto_anaylse_with_research_inspiration as data_analysis
 from synthetic_data_pipeline import SyntheticDataPipeline
 from doctor_to_patient_data import simulate_doctor_patient_dialogue
