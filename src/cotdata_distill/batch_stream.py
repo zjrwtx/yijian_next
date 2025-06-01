@@ -127,8 +127,8 @@ def process_jsonl_threaded(input_file, output_file, max_workers=10):
 
 
 if __name__ == "__main__":
-    input_file = "test.jsonl"  # 替换为你的输入文件路径
-    output_file = "output_threaded.jsonl"  # 替换为你期望的输出文件路径
+    input_file = "Personalized_data.jsonl"  # 替换为你的输入文件路径
+    output_file = "Reasoning_Personalized_data.jsonl"  # 替换为你期望的输出文件路径
     
     # 创建一个示例 test.jsonl 文件 (如果它不存在)
     # 在实际使用中，你应该有自己的 test.jsonl 文件
