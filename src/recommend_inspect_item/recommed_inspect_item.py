@@ -18,6 +18,7 @@ from camel.toolkits import(
      AsyncBrowserToolkit,
     #  ThinkingToolkit,
      RetrievalToolkit,
+     MCPToolkit
      
 )
 import json
@@ -25,7 +26,7 @@ import asyncio
 from camel.types import ModelPlatformType, ModelType  
 from camel.societies.workforce import Workforce
 from camel.configs import DeepSeekConfig,ChatGPTConfig,GeminiConfig
-
+from pathlib import Path
 load_dotenv()
 from camel.logger import set_log_level
 set_log_level(level="DEBUG")
@@ -33,15 +34,18 @@ set_log_level(level="DEBUG")
 # 配置API密钥
 openai_api_key = os.getenv("OPENAI_API_KEY", "")
 os.environ["OPENAI_API_KEY"] = openai_api_key
+config_path = Path(__file__).parent / "mcp_servers_config.json"
+mcp_toolkit = MCPToolkit(config_path=str(config_path))
 
 tools=[
-    # SearchToolkit().search_duckduckgo,
+    SearchToolkit().search_duckduckgo,
     # SearchToolkit().search_google,
     PubMedToolkit().get_tools,
     ArxivToolkit().get_tools,
     *FileWriteToolkit().get_tools(),
     *RetrievalToolkit().get_tools(),
-    *AsyncBrowserToolkit(headless=False).get_tools(),
+    *mcp_toolkit.get_tools()
+    # *AsyncBrowserToolkit(headless=False).get_tools(),
     # *BrowserToolkit(headless=False).get_tools(),
     # ThinkingToolkit().get_tools(),
 ]
@@ -51,6 +55,7 @@ def make_medical_agent(
     example_output: str,
     criteria: str,
 ) -> ChatAgent:
+    mcp_toolkit.connect_sync()
     msg_content = textwrap.dedent(
         f"""\
         您是检验科的医疗专业人员。
@@ -75,19 +80,20 @@ def make_medical_agent(
     # model_platform=ModelPlatformType.GEMINI,
     # model_type=ModelType.GEMINI_2_5_PRO_EXP,
     # model_config_dict=GeminiConfig(temperature=0.2).as_dict(),
-)
+    )
 
     agent = ChatAgent(
         system_message=sys_msg,
         model=model,
         tools=tools,
     )
+    mcp_toolkit.disconnect_sync()
 
     return agent
 
 # 创建临床记录总结器
 summarizer_persona = (
-    '您是专门将医患对话转化为结构化临床记录的医疗文书。'
+    '您是专门将医患对话或其他患者信息转化为结构化临床记录的医疗文书。'
     '您专注于捕捉关键医疗信息、患者病史和临床观察结果。'
     '您需要将内容保存为txt文件到本地'
 )
@@ -228,80 +234,6 @@ test_recommender = make_medical_agent(
     recommender_criteria,
 )
 
-# 创建检验报告生成器
-report_persona = (
-    '您是分析检验结果并生成全面实验室报告的检验报告专家。'
-    '您确保结果的准确解释和清晰传达。'
-    '您需要将内容保存为txt文件到本地'
-)
-
-report_example = (
-    '实验室报告\n'
-    '检验结果：\n'
-    '1. [检验名称]\n'
-    '   - 结果：[数值]\n'
-    '   - 参考范围：[范围]\n'
-    '   - 解读：[临床意义]\n'
-    '结果摘要：\n'
-    '[总体解读和建议]'
-)
-
-report_criteria = textwrap.dedent(
-    """\
-    1. 包含所有检验结果及参考范围
-    2. 提供清晰的结果解读
-    3. 标记任何危急或异常值
-    4. 如需则建议后续检验
-    5. 包含质量控制状态
-    """
-)
-
-report_generator = make_medical_agent(
-    "检验报告生成器",
-    report_persona,
-    report_example,
-    report_criteria,
-)
-
-# 创建工作团队
-
-# 创建URL内容检索器
-retriever_persona = (
-    '您是专门检索和分析医学资源URL内容的信息提取专家。'
-    '您能够从网页内容中提取关键医学信息，并将其整理成结构化的摘要。'
-    '您需要将内容保存为txt文件到本地'
-)
-
-retriever_example = (
-    'URL内容检索结果\n'
-    '资源：[URL地址]\n'
-    '主要内容：\n'
-    '1. [关键信息1]\n'
-    '   - 详情：[详细描述]\n'
-    '2. [关键信息2]\n'
-    '   - 详情：[详细描述]\n'
-    '相关检验项目：\n'
-    '- [检验项目1]：[相关性说明]\n'
-    '- [检验项目2]：[相关性说明]'
-)
-
-retriever_criteria = textwrap.dedent(
-    """\
-    1. 准确提取URL中的医学相关内容
-    2. 重点关注与患者症状相关的检验信息
-    3. 提取检验项目的临床意义和适用情况
-    4. 整理信息为结构化格式
-    5. 保持医学术语的准确性
-    """
-)
-
-url_retriever = make_medical_agent(
-    "URL内容检索器",
-    retriever_persona,
-    retriever_example,
-    retriever_criteria,
-)
-
 # 创建医院检验项目匹配器
 matcher_persona = (
     '您是专门将推荐检验项目与医院实际开展项目进行匹配的专家。'
@@ -402,16 +334,14 @@ workforce.add_single_agent_worker(
     '检验资料搜索器：根据分析结果搜索相关检验资料',
     worker=test_searcher,
 ).add_single_agent_worker(
-
-    '您是专门检索和分析医学资源URL内容的信息提取专家。',
-    worker=url_retriever,
-).add_single_agent_worker(
     '检验项目推荐器：推荐适当的诊断检验',
     worker=test_recommender,
-).add_single_agent_worker(
-    '医院检验项目匹配器：将推荐项目与医院实际项目匹配',
-    worker=hospital_matcher, 
 )
+
+# add_single_agent_worker(
+#     '医院检验项目匹配器：将推荐项目与医院实际项目匹配',
+#     worker=hospital_matcher, 
+# )
 
 # 更新process_clinical_case函数
 def process_clinical_case(conversation_text: str) -> str:
@@ -438,42 +368,46 @@ def process_clinical_case(conversation_text: str) -> str:
     processed_task = workforce.process_task(task)
     return processed_task.result
 
-# 示例临床对话
+# # 示例临床对话
+# example_conversation = """
+# Doctor: 您好，请详细说说您的症状。
+
+# Patient: 医生您好，我这情况很复杂，大概半年前开始，最初是觉得特别疲劳，以为是工作压力大。但后来出现了关节疼痛，特别是手指、手腕和膝盖，早上特别明显，活动一会儿后会好一些。
+
+# Doctor: 关节疼痛的具体表现是什么样的？是双侧还是单侧？
+
+# Patient: 是双侧的，而且是对称的。最近三个月，我还发现脸上和胸前经常出现一些红斑，像蝴蝶一样的形状，太阳光照射后会加重。有时候还会发低烧，37.5-38度之间。
+
+# Doctor: 明白了。您有没有出现口腔溃疡、脱发或者其他症状？
+
+# Patient: 确实有！经常会长溃疡，差不多两周一次。最近半年掉头发特别厉害，还总觉得眼睛干涩。最让我担心的是，有时候会觉得胸闷气短，爬楼梯都困难，之前从来没有这种情况。
+
+# Doctor: 我注意到您的手指关节有些肿胀。最近有没有出现手指发白或发紫的情况，特别是在寒冷环境下？
+
+# Patient: 对，冬天的时候特别明显，手指会先发白，然后变成紫色，最后变红，还会感觉刺痛。我父亲说我最近消瘦很多，实际上我没有刻意减肥，但是半年内瘦了将近10公斤。
+
+# Doctor: 您家族史中有类似的疾病史吗？或者其他自身免疫性疾病？
+
+# Patient: 我姑姑好像也有类似的情况，具体什么病我不太清楚。我注意到最近经常感觉心跳很快，有时候会超过100下/分钟，还经常出现夜汗。
+
+# Doctor: 您平时有服用什么药物吗？包括中药或保健品？
+
+# Patient: 之前吃过止痛药和一些维生素，但效果不明显。最近还出现了肌肉疼痛，特别是大腿和上臂，感觉浑身没劲。有时候早上起床，手指会僵硬半小时左右才能活动自如。对了，最近还经常出现头痛，有时候会头晕，视物模糊。
+
+# Doctor: 您的工作和生活习惯有什么变化吗？比如作息、压力源等。
+
+# Patient: 工作压力一直都挺大的，但最近半年确实更甚。经常失眠，睡眠质量特别差。有时候会莫名其妙地焦虑。最近还发现，一些以前经常吃的食物现在会出现过敏反应，起荨麻疹。
+
+# Doctor: 您刚才提到的胸闷气短，有没有出现过胸痛？运动后会加重吗？
+
+# Patient: 有时会隐隐作痛，但不是很剧烈。深呼吸的时候会感觉胸部不适，最近还出现了干咳的情况。有几次半夜被胸闷惊醒，同时伴有盗汗。
+# """
+
 example_conversation = """
-Doctor: 您好，请详细说说您的症状。
 
-Patient: 医生您好，我这情况很复杂，大概半年前开始，最初是觉得特别疲劳，以为是工作压力大。但后来出现了关节疼痛，特别是手指、手腕和膝盖，早上特别明显，活动一会儿后会好一些。
+患者男性，73岁，汉族。主诉：面色苍白伴乏力10天，排黑便2天。现病史：患者10天前无明显诱因出现面色苍白、乏力，活动后气促明显，伴腹胀、纳差。2天前开始排黑色糊状便，无晕厥，无畏冷、寒战、发热，无咳嗽、咳痰，无腹痛、反酸等不适。发病以来，睡眠欠佳，体重减轻约5kg。既往史：有高血压病史10余年，规律口服氨氯地平可控制。体格检查：BP 130/85mmHg，贫血外观，体型消瘦，睑结膜苍白，全身浅表淋巴结无肿大，胸骨无压痛，双肺呼吸音清，未闻及干湿性啰音。心率90次/分，律齐，各瓣膜区未闻及杂音。全腹软，无压痛、反跳痛，肝、脾肋下未触及。双下肢无水肿。实验室检查初步结果：WBC 5.2×10^9/L，RBC 2.8×10^12/L，Hb 58g/L，MCV 78fl，MCH 26.9pg，MCHC 305g/L，RDW-CV 19%，PLT 327×10^9/L。外周血涂片：红细胞大小不等，以小细胞为主，中心浅染区明显扩大。粪常规检查：黏液(+)，镜检白细胞(++)，隐血弱阳性
 
-Doctor: 关节疼痛的具体表现是什么样的？是双侧还是单侧？
-
-Patient: 是双侧的，而且是对称的。最近三个月，我还发现脸上和胸前经常出现一些红斑，像蝴蝶一样的形状，太阳光照射后会加重。有时候还会发低烧，37.5-38度之间。
-
-Doctor: 明白了。您有没有出现口腔溃疡、脱发或者其他症状？
-
-Patient: 确实有！经常会长溃疡，差不多两周一次。最近半年掉头发特别厉害，还总觉得眼睛干涩。最让我担心的是，有时候会觉得胸闷气短，爬楼梯都困难，之前从来没有这种情况。
-
-Doctor: 我注意到您的手指关节有些肿胀。最近有没有出现手指发白或发紫的情况，特别是在寒冷环境下？
-
-Patient: 对，冬天的时候特别明显，手指会先发白，然后变成紫色，最后变红，还会感觉刺痛。我父亲说我最近消瘦很多，实际上我没有刻意减肥，但是半年内瘦了将近10公斤。
-
-Doctor: 您家族史中有类似的疾病史吗？或者其他自身免疫性疾病？
-
-Patient: 我姑姑好像也有类似的情况，具体什么病我不太清楚。我注意到最近经常感觉心跳很快，有时候会超过100下/分钟，还经常出现夜汗。
-
-Doctor: 您平时有服用什么药物吗？包括中药或保健品？
-
-Patient: 之前吃过止痛药和一些维生素，但效果不明显。最近还出现了肌肉疼痛，特别是大腿和上臂，感觉浑身没劲。有时候早上起床，手指会僵硬半小时左右才能活动自如。对了，最近还经常出现头痛，有时候会头晕，视物模糊。
-
-Doctor: 您的工作和生活习惯有什么变化吗？比如作息、压力源等。
-
-Patient: 工作压力一直都挺大的，但最近半年确实更甚。经常失眠，睡眠质量特别差。有时候会莫名其妙地焦虑。最近还发现，一些以前经常吃的食物现在会出现过敏反应，起荨麻疹。
-
-Doctor: 您刚才提到的胸闷气短，有没有出现过胸痛？运动后会加重吗？
-
-Patient: 有时会隐隐作痛，但不是很剧烈。深呼吸的时候会感觉胸部不适，最近还出现了干咳的情况。有几次半夜被胸闷惊醒，同时伴有盗汗。
 """
-
-
 
 if __name__ == "__main__":
     # 处理病例获取结果

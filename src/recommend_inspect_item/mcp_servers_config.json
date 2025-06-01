@@ -1,0 +1,21 @@
+{
+    "mcpServers": {
+  
+      "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--headless"
+      ]
+    },
+    "jina-mcp-tools": {
+        "command": "npx",
+        "args": [
+          "jina-mcp-tools"
+        ],
+        "env": {
+          "JINA_API_KEY": "jina_b7e2095ff9024a189828581719d13d35rf4l05Vqb_DByHNZ1gESXPNAaH2C"
+        }
+      }
+    }
+  }
